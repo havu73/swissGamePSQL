@@ -1,0 +1,20 @@
+1: Construct a set of query and views to calculate playerStandings:
+
+- countWinView: select winID, count (*) as count from matches group by winID;
+- countLoseView: select loseID, count (*) as count from matches group by loseID;
+ Way1:
+- totalView:  select coalesce (W.winID, L.loseID) af id, W.count as winCount, L.count as lCount from countWinView W full join countLoseView L on W.winID=L.loseID;
+- finalTotalView: select id, sum (coalesce(wCount,0)+coalesce (lCount,0) as total from totalView group by id;
+
+Way 2: 
+- totalView: select coalesce (W.winID, L.loseID) as id, coalesce (W.count,0) as wCount, coalesce(L.count,0) as lCount from countWinView W full join countLoseView L on W.winID=L.loseID;
+-finalTotalView: select id, sum (wCount+lCount) as total from totalView group by id;
+
+Way 3:
+
+- totalView: select total.id, sum (total.wCount+ total.lCount) as total from (select coalesce (W.winID, L.loseID) as id, coalesce (W.count,0) as wCount, coalesce(L.count,0) as lCount from countWinView W full join countLoseView L on W.winID=L.loseID) as total group by total.id;
+
+Coalesce(arg1, arg2, arg3,…): replace the field with the first value among arguments that is not NULL
+
+Finally (I chose way3): 
+- playerStandingsView: create view playerStandingsView as select coalesce (W.winID,T.id) as ID, coalesce(W.count,0) as winCount, T.total as total from countWinView W full outer join totalView T on W.winID=T.id;
