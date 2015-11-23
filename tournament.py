@@ -48,7 +48,8 @@ def registerPlayer(name):
     """
     conn=connect()
     c=conn.cursor()
-    c.execute("Insert into player(ID,name) values (DEFAULT,'{0}');".format(name))
+    query="Insert into player(ID,name) values (DEFAULT, $$"+name+"$$);"
+    c.execute(query);
     conn.commit()
     conn.close()
 
@@ -69,7 +70,7 @@ def playerStandings():
     conn=connect()
     c=conn.cursor()
     result=[]
-    c.execute("select player.ID, player.name, coalesce(S.winCount,0),coalesce(S.total,0) from player left join playerStandingsView S on player.ID=S.id;")
+    c.execute("select player.ID, player.name, coalesce(S.winCount,0) as win,coalesce(S.total,0) as total from player left join playerStandingsView S on player.ID=S.id order by win;")
     for row in c.fetchall():
         result.append((row[0],row[1],row[2],row[3]))
     conn.commit()
@@ -85,7 +86,10 @@ def reportMatch(winner, loser):
     """
     conn=connect()
     c=conn.cursor()
-    c.execute("insert into matches values ")
+    query="insert into matches values ("+str(winner)+","+str(loser)+");"
+    c.execute(query)
+    conn.commit()
+    conn.close()
  
  
 def swissPairings():
@@ -103,5 +107,13 @@ def swissPairings():
         id2: the second player's unique id
         name2: the second player's name
     """
-
-
+    standings=playerStandings()
+    numMatches=len(standings)/2
+    result=[]
+    for i in range (numMatches):
+        id1=standings[2*i][0]
+        name1=standings[2*i][1]
+        id2=standings[2*i+1][0]
+        name2=standings[2*i+1][1]
+        result.append((id1,name1,id2,name2))
+    return result
